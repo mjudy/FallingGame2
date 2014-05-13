@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Falling</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string-array name="dialog_options_accel_enabled">
+        <item name="accelerometer" id="accelerometerItem">Disable Accelerometer</item>
+        <item name="resume" id="resumeItem">Resume</item>
+    </string-array>
+	<string-array name="dialog_options_accel_disabled">
+        <item name="accelerometer">Enable Accelerometer</item>
+        <item name="resume">Resume</item>
+    </string-array>
+</resources>
