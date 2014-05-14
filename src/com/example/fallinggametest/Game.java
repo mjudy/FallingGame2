@@ -1,7 +1,7 @@
 package com.example.fallinggametest;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Random;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.graphics.BitmapFactory;
@@ -19,8 +20,14 @@ import android.view.MenuInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.WindowManager;
+import android.widget.TextView;
 
-import com.gameobjects.*;
+import com.gameobjects.GameObject;
+import com.gameobjects.HomingMissile;
+import com.gameobjects.ScoreLabel;
+import com.gameobjects.SkyBackground;
+import com.gameobjects.Trooper;
 
 /**
  * 
@@ -40,13 +47,14 @@ public class Game extends Activity implements OnTouchListener {
 	 */
 	private GameLoop gameLoop;
 	
+	private SpawnHandler spawnHandler;
 	
 	/**
 	 * Determine whether to control Trooper using touch screen or accelerometer
 	 */
 	public boolean useAccelerometer;
 	
-	public static int screenWidth, screenHeight;
+	public int screenWidth, screenHeight;
 	
 	private ArrayList<GameObject> gameObjects;
 	
@@ -61,6 +69,8 @@ public class Game extends Activity implements OnTouchListener {
 	public final static String HIGH_SCORE_KEY = "HIGH_SCORE_KEY";
 	
 	private AlertDialog dialog;
+	private Thread thread;
+	private boolean dialogOpen = false;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState){
@@ -111,11 +121,10 @@ public class Game extends Activity implements OnTouchListener {
 		 */
 		addInitialGameObjects();
 		
+		spawnHandler = new SpawnHandler(this);
+		
 		// give gameWorld a touch listener
 		gameWorld.setOnTouchListener(this);
-		
-		
-		 
 	}
 	
 	@Override
@@ -128,7 +137,9 @@ public class Game extends Activity implements OnTouchListener {
 	
 	@Override
 	public boolean onMenuOpened(int featureId, Menu menu) {
-		closeOptionsMenu();		
+		menu.getItem(0).setVisible(false);		
+		closeContextMenu();
+		closeOptionsMenu();
 		gameLoop.stop();
 		
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -149,7 +160,8 @@ public class Game extends Activity implements OnTouchListener {
 					editor.commit();
 				}
 				
-				Thread thread = new Thread(gameLoop);
+				
+				thread = new Thread(gameLoop);
 				thread.start();
 				dialog.cancel();
 				dialog.dismiss();
@@ -160,7 +172,7 @@ public class Game extends Activity implements OnTouchListener {
 			
 			@Override
 			public void onCancel(DialogInterface dialog) {
-				Thread thread = new Thread(gameLoop);
+				thread = new Thread(gameLoop);
 				thread.start();
 				dialog.cancel();
 				dialog.dismiss();				
@@ -186,6 +198,8 @@ public class Game extends Activity implements OnTouchListener {
 	protected void onResume() {
 		super.onResume();
 		
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		
 		// create and start the GameLoop Runnable class
 		startGameLoop();
 	}
@@ -197,7 +211,7 @@ public class Game extends Activity implements OnTouchListener {
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		if(gameLoop.isRunning() == false) {
-			Thread thread = new Thread(gameLoop);
+			thread = new Thread(gameLoop);
 			thread.start();
 		}
 		
@@ -209,12 +223,12 @@ public class Game extends Activity implements OnTouchListener {
 			float mid = screenWidth / 2;
 			
 			if(xPos < mid)
-				trooper.setVelocityX(Trooper.MAX_SPEED * -1);
+				trooper.dx = trooper.MAX_SPEED * -1;
 			else
-				trooper.setVelocityX(Trooper.MAX_SPEED);
+				trooper.dx = trooper.MAX_SPEED;
 		}
 		else if(event.getAction() == MotionEvent.ACTION_UP)
-			trooper.setVelocityX(0.0f);
+			trooper.dx = 0;
 		else
 			return true; 
 		
@@ -278,7 +292,7 @@ public class Game extends Activity implements OnTouchListener {
 	public void startGameLoop(){
 		
 		this.gameLoop = new GameLoop(this, this.gameWorld);
-		Thread thread = new Thread(gameLoop);
+		thread = new Thread(gameLoop);
 		thread.start();		
 	}
 	
@@ -302,11 +316,11 @@ public class Game extends Activity implements OnTouchListener {
 				R.drawable.background), screenWidth, screenHeight);
 		addGameObject(background);
 		
-		Trooper trooper = new Trooper(350, 300, this);
+		Trooper trooper = new Trooper(350, 300, this, screenWidth);
 		this.trooper = trooper; // store a reference to trooper
 		addGameObject(trooper);
 		
-		ScoreLabel label = new ScoreLabel(15,25);
+		ScoreLabel label = new ScoreLabel(15, screenHeight / 20, screenHeight);
 		this.scoreLabel = label; // store a reference to scoreLabel
 		addGameObject(label);
 	}
@@ -337,6 +351,11 @@ public class Game extends Activity implements OnTouchListener {
 		}
 		
 	}
+	
+	public void lockMissileOnTrooper(HomingMissile missile){
+		
+		missile.setTarget(this.trooper);
+	}
 
 	/** 
 	 * TODO
@@ -346,70 +365,8 @@ public class Game extends Activity implements OnTouchListener {
 	 */
 	public void spawnHandling(){
 		
-		Random rand = new Random();
-		
-		// the amount of time to wait before spawning a new enemy
-		int waitTimeMillis = 1500 + rand.nextInt(1000);
-		
-		if(timeSinceLastSpawn >= waitTimeMillis){
-			
-			// ----- SPAWN BIRD -----
-			
-			//randomly choose whether to spawn on left or on right
-			//depending on time since last spawn
-			boolean leftSpawn = (timeSinceLastSpawn % 2 == 0);
-			
-			int yPos = 400 + rand.nextInt(screenHeight);
-			
-			if(leftSpawn){
-				Bird b = new Bird(0, yPos, 300, -300, this);
-				addGameObject(b);
-			} else {
-				Bird b = new Bird(screenWidth, yPos, -300, -300, this);
-				addGameObject(b);
-			}
+		timeSinceLastSpawn = spawnHandler.spawnGameObject(timeSinceLastSpawn);
 
-            //Spawn Balloon
-            int xPos = rand.nextInt(screenWidth);
-            Balloon balloon = new Balloon (xPos, screenHeight, 0, 300, this);
-            addGameObject(balloon);
-
-            //Spawn UFO
-            leftSpawn = rand.nextBoolean();
-            yPos = 400 + rand.nextInt(screenHeight);
-            if(leftSpawn)
-            {
-                UFO ufo = new UFO (0, yPos, 500, -400, this);
-                addGameObject(ufo);
-            }
-            else
-            {
-                UFO ufo = new UFO(screenWidth, yPos, -500, -400, this);
-                addGameObject(ufo);
-            }
-
-//            //Spawn Normal Missile - Causes NullPointerException
-//            yPos = 400 + rand.nextInt(screenHeight);
-//            leftSpawn = rand.nextBoolean();
-//            if(leftSpawn)
-//            {
-//                NormalMissile normalMissile = new NormalMissile(0, yPos, 350, -300, this);
-//                addGameObject(normalMissile);
-//            }
-//            else
-//            {
-//                NormalMissile normalMissile = new NormalMissile(screenWidth, yPos, -350, -300, this);
-//                addGameObject(normalMissile);
-//            }
-
-            // ----- SPAWN HOMING MISSILE -----
-			xPos = rand.nextInt(screenWidth);
-			HomingMissile hm = new HomingMissile(xPos, screenHeight, 250, trooper, this);
-			addGameObject(hm);
-			
-			// after an item is spawned, this should be reset to 0
-			timeSinceLastSpawn = 0;
-		}
 	}
 	
 	
@@ -424,70 +381,89 @@ public class Game extends Activity implements OnTouchListener {
 			GameObject temp = gameObjects.get(i);
 			
 			// if an object goes off the screen, remove it from ArrayList
-			if(temp.getXPos() < 0 
-					|| temp.getXPos() > screenWidth
-					|| temp.getYPos() < 0 
-					|| temp.getYPos() > screenHeight){
+			if(temp.x < 0 
+					|| temp.x > screenWidth
+					|| temp.y < 0 
+					|| temp.y > screenHeight){
 				
 				gameObjects.remove(temp);
 			}
 		}
 	}
 	
+	
 	public void checkForStopCondition(){
 		
 		if(trooper.isAlive() == false) {
 			
-			gameLoop.stop();
-			
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			View view;
-			
-			if(currentScore > getSharedPreferences(SHARED_PREFERENCES_KEY, 
-					Context.MODE_PRIVATE).getInt(HIGH_SCORE_KEY, 0)) {
-				view = getLayoutInflater().inflate(R.layout.high_score, null);
-				builder.setTitle("Congratulations!");
-				
-				SharedPreferences preferences = getSharedPreferences(SHARED_PREFERENCES_KEY, 
-						Context.MODE_PRIVATE);
-				Editor editor = preferences.edit();
-				
-				if(preferences.contains(HIGH_SCORE_KEY))
-					editor.remove(HIGH_SCORE_KEY);
-				
-				editor.putInt(HIGH_SCORE_KEY, currentScore);
-				editor.commit();				
-			}
-			else {
-				view = getLayoutInflater().inflate(R.layout.game_over, null);
-				builder.setTitle("You crashed!");
-			}
-			
-			
-			builder.setView(view);
-			builder.setPositiveButton("Play Again?", new OnClickListener() {
+			this.runOnUiThread(new Runnable() {
 				
 				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					// Restart the game
-					gameWorld = new GameWorld(Game.this, gameObjects);
-					gameLoop = new GameLoop(Game.this, gameWorld);
+				public void run() {
+					gameLoop.stop();
 					
-					Thread thread = new Thread(gameLoop);
-					thread.start();
+					int highScore = getSharedPreferences(SHARED_PREFERENCES_KEY, 
+							Context.MODE_PRIVATE).getInt(HIGH_SCORE_KEY, 0);
+					
+					AlertDialog.Builder builder = new AlertDialog.Builder(Game.this);
+					View view;
+					
+					if(currentScore > highScore) {
+						view = getLayoutInflater().inflate(R.layout.high_score, null);
+						builder.setTitle("Congratulations!");
+						
+						DecimalFormat formatter = new DecimalFormat("#,###");
+						TextView textView = (TextView) view.findViewById(R.id.scoreView);
+						textView.setText("Your score was " + formatter.format(currentScore));
+						
+						SharedPreferences preferences = getSharedPreferences(SHARED_PREFERENCES_KEY, 
+								Context.MODE_PRIVATE);
+						Editor editor = preferences.edit();
+						
+						if(preferences.contains(HIGH_SCORE_KEY))
+							editor.remove(HIGH_SCORE_KEY);
+						
+						editor.putInt(HIGH_SCORE_KEY, currentScore);
+						editor.commit();				
+					}
+					else {
+						view = getLayoutInflater().inflate(R.layout.game_over, null);
+						builder.setTitle("You crashed!");
+					}
+					
+					
+					builder.setView(view);
+					builder.setPositiveButton("Play Again?", new OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialogOpen = false;
+							Game.this.finish();
+							Intent intent = new Intent(Game.this, Game.class);
+							startActivity(intent);
+						}
+					});
+					
+					builder.setNegativeButton("Return to Main Menu", new OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialogOpen = false;
+							Game.this.finish();
+							Intent intent = new Intent(Game.this, MainMenu.class);
+							startActivity(intent);
+						}
+					});
+					
+					builder.setCancelable(false); // Cannot tap outside the dialog to cancel it
+					
+					if(dialogOpen == false) {
+						dialogOpen = true;
+						builder.show();
+					}
 				}
 			});
 			
-			builder.setNegativeButton("Return to Main Menu", new OnClickListener() {
-				
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					// Return to main menu
-				}
-			});
-			
-			builder.setCancelable(false); // Cannot tap outside the dialog to cancel it
-			builder.show();
 		}
 	}
 }

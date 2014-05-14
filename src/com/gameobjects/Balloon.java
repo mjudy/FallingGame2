@@ -5,10 +5,19 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import com.example.fallinggametest.R;
 
+/**
+ * Defines the hot air balloon game object.
+ */
 public class Balloon extends GameObject
 {
-    private Bitmap sprite;
-
+    /**
+     * Constructs a new hot air balloon game object.
+     * @param x the starting x coordinate
+     * @param y the starting y coordinate
+     * @param dx the velocity on the x axis
+     * @param dy the velocity on the y axis
+     * @param context the application environment of this object
+     */
     public Balloon(float x, float y, float dx, float dy, Context context)
     {
 
@@ -19,5 +28,6 @@ public class Balloon extends GameObject
         this.dy = dy;
 
         this.sprite = BitmapFactory.decodeResource(context.getResources(), R.drawable.balloon);
+        createHitboxForSprite();
     }
 }

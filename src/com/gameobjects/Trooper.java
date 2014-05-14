@@ -15,21 +15,33 @@ import com.collision.PhysVector;
 import com.example.fallinggametest.Game;
 import com.example.fallinggametest.R;
 
+/**
+ * Defines methods and data relating to the paratrooper in Falling. He's the hero of our game!
+ */
 public class Trooper extends GameObject{
 	
 	private PhysVector destination;
 	
-	public static final float MAX_SPEED = 600;
+	public final float MAX_SPEED;
 	
 	private int orientation;
 	
 	private Game game;
-	
-	public Trooper(float x, float y, Game game) {
+
+    /**
+     * Creates a new Trooper at a given starting position, for a given game, and with knowledge of the game's width for
+     * scaling the trooper's movement speed.
+     * @param x the top left x coordinate
+     * @param y the top left y coordinate
+     * @param game the game in which the trooper will spawn
+     * @param gameWidth the width of the game screen for scaling the trooper's movement speed.
+     */
+	public Trooper(float x, float y, Game game, int gameWidth) {
 		
 		this.x = x;
 		this.y = y;
 		this.game = game;
+		this.MAX_SPEED = gameWidth;
 		
 		dx = dy = dx2 = dy2 = 0;
 		
@@ -44,7 +56,12 @@ public class Trooper extends GameObject{
 		WindowManager wm = (WindowManager) game.getSystemService(Context.WINDOW_SERVICE);
 		orientation = wm.getDefaultDisplay().getRotation();
 	}
-	
+
+    /**
+     * Checks for collisions with other game objects.
+     * @param gameObjects list of other game objects.
+     */
+    @Override
 	public void checkForCollisions(ArrayList<GameObject> gameObjects){
 		
 		for(int i = 0; i < gameObjects.size(); i++){
@@ -63,14 +80,15 @@ public class Trooper extends GameObject{
 					this.alive = false;
 				}
 			}
+			else if(this.x + sprite.getWidth() <= 0 || this.x >= game.screenWidth)
+				this.alive = false;
 		}
 	}
-	
-	public void setDestination(PhysVector dest){
-		
-		this.destination = dest;
-	}
-	
+
+    /**
+     * Updates the trooper's location on the game screen.
+     * @param deltaTime the time increment.
+     */
 	@Override
 	public void updatePhysics(float deltaTime){
 		
@@ -104,14 +122,25 @@ public class Trooper extends GameObject{
                 x = screenWidth - 48;
 		}
 	}
-	 
+
+    /**
+     * Returns whether or not the trooper is still alive during his fall.
+     * @return true if the trooper is still alive.
+     */
 	public boolean isAlive(){
 		
 		return this.alive;
 	}
-	
+
+    /**
+     * Listener class for the android accelerometer input
+     */
 private SensorEventListener listener = new SensorEventListener() {
 
+        /**
+         * Listens for changes in the accelerometer's position and converts the output of the accelerometer to degrees.
+         * @param event the indicated change in the accelerometer's state
+         */
 		@Override
 		public void onSensorChanged(SensorEvent event) {
 			if(game.useAccelerometer == false)
@@ -137,8 +166,16 @@ private SensorEventListener listener = new SensorEventListener() {
 			double direction = xraw / x;
 			
 			dx = (float) (percentage * MAX_SPEED * direction * 2);
+			
+			if(x == 0)
+				dx = 0;
 		}
-		
+
+        /**
+         * Listens for a forced change in accuracy of the accelerometer.
+         * @param sensor The sensor that has changed
+         * @param accuracy The new accuracy weight
+         */
 		@Override
 		public void onAccuracyChanged(Sensor sensor, int accuracy) {
 			// Do nothing...

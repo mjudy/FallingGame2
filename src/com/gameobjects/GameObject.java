@@ -3,25 +3,31 @@ package com.gameobjects;
 import java.util.ArrayList;
 
 import com.collision.Hitbox;
-import com.collision.PhysVector;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 
-
+/**
+ * Base class that defines game objects for Falling with methods to create their hitboxes, draw their sprites
+ * and update their location on the game screen.
+ */
 public abstract class GameObject {
 
 	/** variables for position, velocity, acceleration */
-	protected float x, y, dx, dy, dx2, dy2;
+	public float x, y, dx, dy, dx2, dy2;
 	
 	protected int screenHeight, screenWidth;
 	
 	protected Hitbox hitbox;
 	
-	protected boolean alive;
+	public boolean alive;
 	
 	protected Bitmap sprite;
-	
+
+    /**
+     * Draws the game objects sprite on the given canvas.
+     * @param canvas the canvas on which to draw the sprite
+     */
 	public void draw(Canvas canvas){
 		
 		if(sprite != null){
@@ -29,102 +35,67 @@ public abstract class GameObject {
 			canvas.drawBitmap(sprite, x, y, null);
 		}
 	}
-	
+
+    /**
+     * Creates a hitbox for the game object based on the object's sprite.
+     */
 	public void createHitboxForSprite(){
 		
 		if(sprite != null){
 			this.hitbox = new Hitbox((int)x, (int)y, sprite.getWidth(), sprite.getHeight());
 		}
 	}
-	
-	public void setPosition(float x, float y){
-		
-		this.x = x;
-		this.y = y;
+
+    /**
+     * Returns the center x coordinate of the game object.
+     * @return the center x coordinate of the game object.
+     */
+	public float getCenterX() {
+		return x + sprite.getWidth() / 2;
 	}
-	
-	public void setVelocityX(float dx){
-		this.dx = dx;
+
+    /**
+     * Returns the center y coordinate of the game object.
+     * @return the center y coordinate of the game object.
+     */
+	public float getCenterY() {
+		return y + sprite.getHeight() / 2;
 	}
-	
-	public void setVelocityY(float dy){
-		this.dy = dy;
-	}
-	
-	public void setAccelX(float dx2){
-		this.dx2 = dx2;
-	}
-	
-	public void setAccelY(float dy2){
-		this.dy2 = dy2;
-	}
-	
-	public float getXPos(){
-		
-		return this.x;
-	}
-	
-	public float getYPos(){
-		
-		return this.y;
-	}
-	
-	public float getVelocityX(){
-		
-		return this.dx;
-	}
-	
-	public float getVelocityY(){
-		
-		return this.dy;
-	}
-	
-	public float getAccelX(){
-		
-		return this.dx2;
-	}
-	
-	public float getAccelY(){
-		
-		return this.dy2;
-	}
-	
-	public float getCenterX(){
-		
-		return x + sprite.getWidth()/2;
-	}
-	
-	public float getCenterY(){
-		
-		return y + sprite.getHeight()/2;
-	}
-	
+
+    /**
+     * Updates the game objects position using its velocity and the time increment.
+     * @param deltaTime the time increment.
+     */
 	public void updatePhysics(float deltaTime){
 		
+		// update velocity
 		dx += dx2 * deltaTime;
 		dy += dy2 * deltaTime;
 
+		// update position
 		x += dx * deltaTime;
 		y += dy * deltaTime;
 		
+		//update the position of the hitbox
 		if(hitbox != null){
 			
-			hitbox.setPosition((int)x, (int)y);
+			hitbox.setPosition((int) x, (int) y);
 		}
-		
-		
 	}
-	
-	public void setSprite(Bitmap bmp){
-		
-		this.sprite = bmp;
-	}
-	
+
+    /**
+     * Checks for collisions with other game objects.
+     * @param gameObjects list of other game objects.
+     */
 	public void checkForCollisions(ArrayList<GameObject> gameObjects){
 		// do nothing unless overwritten
 	}
-		
-	// TODO
+
+    /**
+     * Checks if this game object is colliding with another game object.
+     * @param other the other game object to check for collision with.
+     * @return true if the objects are colliding.
+     */
 	public boolean isColliding(GameObject other){
 	
 		if(this.hitbox != null && other.hitbox != null){

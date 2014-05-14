@@ -2,6 +2,8 @@ package com.example.fallinggametest;
 
 import java.util.concurrent.TimeUnit;
 
+import android.os.Handler;
+
 public class GameLoop implements Runnable {
 
 	/**
@@ -9,10 +11,14 @@ public class GameLoop implements Runnable {
 	 */
 	private Game game;
 	
-	private volatile boolean running;
+	private Handler handler;
 	
-	public GameLoop(Game game, GameWorld gameWorld){
-		
+	private boolean running;
+	
+	public static final int FPS = 60;
+	public static final int DELAY = 1000 / FPS;
+	
+	public GameLoop(Game game, GameWorld gameWorld) {
 		this.game = game;
 	}
 	
@@ -20,25 +26,23 @@ public class GameLoop implements Runnable {
 	@Override
 	public void run() {
 		running = true;
+				
 		
 		while (running) {
-			try {
-				
-				// 1000 / 33 = 30fps
-				TimeUnit.MILLISECONDS.sleep(33);
-				
+			try {								
 				// do everything that needs to be done in the game
-				game.updatePhysics(.033f);
+				game.updatePhysics(1f / FPS);
 				game.doCollisionTesting();
 				game.checkForStopCondition();
 				game.spawnHandling();
 				game.removeDeadGameObjects();
 				game.incrementScore(1);
-				game.incrementTime(33);
+				game.incrementTime(1000 / FPS);
 				
 				// force a redraw on the screen
 				game.redrawCanvas();
-
+				
+				TimeUnit.MILLISECONDS.sleep(DELAY);
 			} catch (InterruptedException ie) {
 				running = false;
 				notifyAll();

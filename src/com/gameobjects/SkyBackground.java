@@ -19,7 +19,7 @@ public class SkyBackground extends GameObject{
 		sprite2y = sprite.getHeight();
 		
 		dx = 0;
-		dy = -400;
+		dy = -screenHeight / 10;
 		
 		this.sprite = sprite;
 		this.sprite2 = sprite;
@@ -35,13 +35,12 @@ public class SkyBackground extends GameObject{
 		sprite2y += dy * deltaTime;
 		
 		if(y <= -sprite.getHeight()){
-			y = sprite.getHeight() - 20;
+			y = sprite.getHeight();
 		}
 		
 		if(sprite2y <= -sprite.getHeight()){
-			sprite2y = sprite.getHeight() - 20;
+			sprite2y = sprite.getHeight();
 		}
-		
 		
 	}
 	
@@ -52,6 +51,7 @@ public class SkyBackground extends GameObject{
 		canvas.scale(sx, sy);
 		canvas.drawBitmap(sprite, x,y, null);
 		canvas.drawBitmap(sprite2, sprite2x, sprite2y, null);
+		canvas.scale(1 / sx, 1 / sy);
 	}
 	
 	

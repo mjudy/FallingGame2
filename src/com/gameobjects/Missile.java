@@ -5,13 +5,15 @@ import com.collision.PhysVector;
 import android.graphics.Canvas;
 
 /**
- * 
+ * An abstract class that defines information regarding the missile game objects.
+ * This allows the missiles to change orientation in flight and move along vectors different from the x and y axes.
  * @author Evan Hanger, Andrew Huber, Mark Judy
- *
  */
 public abstract class Missile extends GameObject{
 
+	// this is a position vector that the Missile will fly towards
 	protected PhysVector waypoint;
+	protected float speed;
 	
 	/**
 	 * This method gets overwritten because we need to be able to do 
@@ -35,9 +37,8 @@ public abstract class Missile extends GameObject{
 		
 		canvas.drawBitmap(sprite, x, y, null);
 		
-		// rotate the canvas the opposite number of degrees after drawing
+		// rotate the canvas in the opposite direction after drawing
 		canvas.rotate(-degrees, rearPoint.x, rearPoint.y);
-		
 	}
 	
 }
